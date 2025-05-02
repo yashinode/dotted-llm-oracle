@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				nothing: {
+					'black': '#1A1F2C',
+					'gray': '#8E9196',
+					'light-gray': '#F1F0FB',
+					'blue': '#33C3F0'
 				}
 			},
 			borderRadius: {
@@ -84,11 +91,36 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					from: {
+						opacity: '0'
+					},
+					to: {
+						opacity: '1'
+					}
+				},
+				'pulse-gentle': {
+					'0%, 100%': {
+						opacity: '1'
+					},
+					'50%': {
+						opacity: '0.8'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out',
+				'pulse-gentle': 'pulse-gentle 3s infinite ease-in-out'
+			},
+			fontFamily: {
+				'mono': ['Space Mono', 'monospace'],
+				'sans': ['Inter', 'sans-serif']
+			},
+			backgroundImage: {
+				'dotted-pattern': "url(\"data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='1' fill='%238E9196' fill-opacity='0.25'/%3E%3C/svg%3E\")"
 			}
 		}
 	},
