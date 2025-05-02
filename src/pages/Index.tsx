@@ -3,19 +3,49 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Navbar from '@/components/Navbar';
 import ModelSelector from '@/components/ModelSelector';
 import ParameterControls from '@/components/ParameterControls';
 import { useToast } from '@/components/ui/use-toast';
 import { Separator } from '@/components/ui/separator';
+import ModelComparison from '@/components/ModelComparison';
+import { fetchModelResponse, ModelResponse } from '@/utils/api';
+import { Loader2 } from 'lucide-react';
 
-// Define initial models
+// Define initial models with more details
 const initialModels = [
-  { id: 1, name: 'GPT-4o', selected: true },
-  { id: 2, name: 'Claude 3 Opus', selected: false },
-  { id: 3, name: 'GPT-4o-mini', selected: false },
-  { id: 4, name: 'Llama 3', selected: false },
+  { 
+    id: 1, 
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    apiKey: '',
+    selected: true,
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions'
+  },
+  { 
+    id: 2, 
+    name: 'Claude 3 Opus',
+    provider: 'Anthropic',
+    apiKey: '',
+    selected: false,
+    apiEndpoint: 'https://api.anthropic.com/v1/messages'
+  },
+  { 
+    id: 3, 
+    name: 'GPT-4o-mini',
+    provider: 'OpenAI',
+    apiKey: '',
+    selected: false,
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions'
+  },
+  { 
+    id: 4, 
+    name: 'Llama 3',
+    provider: 'Meta',
+    apiKey: '',
+    selected: false,
+    apiEndpoint: 'https://api.together.xyz/v1/completions'
+  },
 ];
 
 // Define initial parameters
@@ -32,13 +62,25 @@ const Index = () => {
   const [models, setModels] = useState(initialModels);
   const [parameters, setParameters] = useState(initialParams);
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<null | any[]>(null);
+  const [results, setResults] = useState<null | ModelResponse[]>(null);
+  const [processingModels, setProcessingModels] = useState<number[]>([]);
   const { toast } = useToast();
 
   const handleModelToggle = (id: number) => {
     setModels(models.map(model => 
       model.id === id ? { ...model, selected: !model.selected } : model
     ));
+  };
+
+  const handleUpdateModel = (id: number, updates: Partial<typeof models[0]>) => {
+    setModels(models.map(model => 
+      model.id === id ? { ...model, ...updates } : model
+    ));
+  };
+
+  const handleAddModel = (model: Omit<typeof models[0], 'id'>) => {
+    const newId = Math.max(...models.map(m => m.id), 0) + 1;
+    setModels([...models, { ...model, id: newId }]);
   };
 
   const handleParameterChange = (param: string, value: number) => {
@@ -68,30 +110,50 @@ const Index = () => {
       return;
     }
 
+    // Check if API keys are provided for selected models
+    const missingKeys = selectedModels.filter(model => !model.apiKey);
+    if (missingKeys.length > 0) {
+      toast({
+        title: "Missing API keys",
+        description: `Please provide API keys for: ${missingKeys.map(m => m.name).join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
+    setResults(null);
     
-    // Simulate API calls to the selected models
     try {
-      // In a real implementation, these would be actual API calls
-      const mockResults = await Promise.all(
-        selectedModels.map(async (model) => {
-          // Simulate different response times
-          const delay = Math.random() * 2000 + 1000;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          
-          return {
-            model: model.name,
-            response: `This is a simulated response from ${model.name} using the provided prompt. In a real implementation, this would be the actual response from the API.`,
-            metrics: {
-              time: delay,
-              tokens: Math.floor(Math.random() * 500) + 100,
-              cost: (Math.random() * 0.05).toFixed(4)
-            }
-          };
-        })
-      );
+      // Process models concurrently but track individually
+      const allResults: ModelResponse[] = [];
       
-      setResults(mockResults);
+      await Promise.all(selectedModels.map(async (model) => {
+        setProcessingModels(prev => [...prev, model.id]);
+        
+        try {
+          const result = await fetchModelResponse(prompt, {
+            ...model,
+            contextWindow: 0,
+            costPer1kTokens: '$0.005', // Default estimation
+            supportsImages: false,
+            enabled: true
+          }, parameters);
+          
+          allResults.push(result);
+        } catch (error) {
+          console.error(`Error with ${model.name}:`, error);
+          allResults.push({
+            model: model.name,
+            response: `Error: Could not get response from ${model.name}. Please check API key and endpoint.`,
+            metrics: { time: 0, tokens: 0, cost: '$0.00' }
+          });
+        } finally {
+          setProcessingModels(prev => prev.filter(id => id !== model.id));
+        }
+      }));
+      
+      setResults(allResults);
       
       toast({
         title: "Test completed",
@@ -106,6 +168,7 @@ const Index = () => {
       console.error("Error testing models:", error);
     } finally {
       setIsLoading(false);
+      setProcessingModels([]);
     }
   };
 
@@ -119,12 +182,12 @@ const Index = () => {
           <div className="md:col-span-2">
             <Card className="bg-card border-dotted-custom rounded-md overflow-hidden shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-mono">Prompt</CardTitle>
+                <CardTitle className="text-lg">Prompt</CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea 
                   placeholder="Enter your prompt here..." 
-                  className="min-h-[200px] font-mono text-sm focus:ring-nothing-blue resize-none border-dashed" 
+                  className="min-h-[200px] text-sm focus:ring-nothing-blue resize-none border-dashed" 
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                 />
@@ -135,7 +198,12 @@ const Index = () => {
                   className="bg-nothing-black hover:bg-nothing-black/90 text-white"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Testing...' : 'Test Prompt'}
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Testing...
+                    </span>
+                  ) : 'Test Prompt'}
                 </Button>
               </CardFooter>
             </Card>
@@ -145,19 +213,21 @@ const Index = () => {
           <div>
             <Card className="bg-card border-dotted-custom rounded-md overflow-hidden shadow-sm mb-6">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-mono">Models</CardTitle>
+                <CardTitle className="text-lg">Models</CardTitle>
               </CardHeader>
               <CardContent>
                 <ModelSelector 
                   models={models} 
-                  onToggleModel={handleModelToggle} 
+                  onToggleModel={handleModelToggle}
+                  onUpdateModel={handleUpdateModel}
+                  onAddModel={handleAddModel}
                 />
               </CardContent>
             </Card>
             
             <Card className="bg-card border-dotted-custom rounded-md overflow-hidden shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-mono">Parameters</CardTitle>
+                <CardTitle className="text-lg">Parameters</CardTitle>
               </CardHeader>
               <CardContent>
                 <ParameterControls 
@@ -169,48 +239,19 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Results area */}
-        {results && (
-          <div className="mt-8 animate-fade-in">
-            <h2 className="text-lg font-mono mb-4">Results</h2>
-            <Tabs defaultValue={results[0]?.model} className="w-full">
-              <TabsList className="mb-2">
-                {results.map((result) => (
-                  <TabsTrigger key={result.model} value={result.model} className="font-mono">
-                    {result.model}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              
-              {results.map((result) => (
-                <TabsContent key={result.model} value={result.model} className="border-dotted-custom rounded-md p-4">
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-mono text-sm">{result.model}</h3>
-                      <div className="flex gap-4 text-xs text-muted-foreground">
-                        <span>Time: {(result.metrics.time / 1000).toFixed(2)}s</span>
-                        <span>Tokens: {result.metrics.tokens}</span>
-                        <span>Cost: ${result.metrics.cost}</span>
-                      </div>
-                    </div>
-                    <Separator className="mb-4" />
-                    <div className="bg-muted/50 p-4 rounded font-mono text-sm whitespace-pre-wrap">
-                      {result.response}
-                    </div>
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-            
-            <div className="mt-6 flex justify-end">
-              <Button variant="outline" className="font-mono text-sm mr-2">
-                Save Results
-              </Button>
-              <Button className="bg-nothing-blue hover:bg-nothing-blue/90 text-white font-mono text-sm">
-                Compare Details
-              </Button>
+        {/* Processing indicators */}
+        {processingModels.length > 0 && (
+          <div className="mt-8 animate-pulse">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <p>Processing {processingModels.length} model(s)...</p>
             </div>
           </div>
+        )}
+        
+        {/* Results area with side-by-side comparison */}
+        {results && results.length > 0 && (
+          <ModelComparison results={results} />
         )}
       </main>
     </div>

@@ -9,7 +9,7 @@ const Navbar = () => {
         <div className="h-8 w-8 rounded-full bg-nothing-black flex items-center justify-center">
           <div className="h-2 w-2 rounded-full bg-nothing-blue"></div>
         </div>
-        <span className="font-mono text-lg font-medium tracking-tight">prompt.compare</span>
+        <span className="text-lg font-medium tracking-tight">prompt.compare</span>
       </div>
       
       <div className="flex gap-6">
