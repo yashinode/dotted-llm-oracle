@@ -20,7 +20,22 @@ const initialModels = [
     provider: 'OpenAI',
     apiKey: '',
     selected: true,
-    apiEndpoint: 'https://api.openai.com/v1/chat/completions'
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions',
+    curlTemplate: `curl https://api.openai.com/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer {{apiKey}}" \\
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{prompt}}"
+      }
+    ],
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
+  }'`
   },
   { 
     id: 2, 
@@ -28,7 +43,22 @@ const initialModels = [
     provider: 'Anthropic',
     apiKey: '',
     selected: false,
-    apiEndpoint: 'https://api.anthropic.com/v1/messages'
+    apiEndpoint: 'https://api.anthropic.com/v1/messages',
+    curlTemplate: `curl https://api.anthropic.com/v1/messages \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: {{apiKey}}" \\
+  -H "anthropic-version: 2023-06-01" \\
+  -d '{
+    "model": "claude-3-opus-20240229",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{prompt}}"
+      }
+    ],
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}}
+  }'`
   },
   { 
     id: 3, 
@@ -36,7 +66,22 @@ const initialModels = [
     provider: 'OpenAI',
     apiKey: '',
     selected: false,
-    apiEndpoint: 'https://api.openai.com/v1/chat/completions'
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions',
+    curlTemplate: `curl https://api.openai.com/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer {{apiKey}}" \\
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{prompt}}"
+      }
+    ],
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
+  }'`
   },
   { 
     id: 4, 
@@ -44,7 +89,17 @@ const initialModels = [
     provider: 'Meta',
     apiKey: '',
     selected: false,
-    apiEndpoint: 'https://api.together.xyz/v1/completions'
+    apiEndpoint: 'https://api.together.xyz/v1/completions',
+    curlTemplate: `curl https://api.together.xyz/v1/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer {{apiKey}}" \\
+  -d '{
+    "model": "meta-llama/Llama-3-8b-chat",
+    "prompt": "{{prompt}}",
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
+  }'`
   },
 ];
 

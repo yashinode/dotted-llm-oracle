@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import Navbar from '@/components/Navbar';
+import CurlTemplateField from '@/components/CurlTemplateField';
 
 // Define initial models with more details
 const initialModels = [
@@ -22,7 +23,22 @@ const initialModels = [
     contextWindow: 128000,
     costPer1kTokens: '$0.005',
     supportsImages: true,
-    apiEndpoint: 'https://api.openai.com/v1/chat/completions'
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions',
+    curlTemplate: `curl https://api.openai.com/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer {{apiKey}}" \\
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{prompt}}"
+      }
+    ],
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
+  }'`
   },
   { 
     id: 2, 
@@ -33,7 +49,22 @@ const initialModels = [
     contextWindow: 200000,
     costPer1kTokens: '$0.008',
     supportsImages: true,
-    apiEndpoint: 'https://api.anthropic.com/v1/messages'
+    apiEndpoint: 'https://api.anthropic.com/v1/messages',
+    curlTemplate: `curl https://api.anthropic.com/v1/messages \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: {{apiKey}}" \\
+  -H "anthropic-version: 2023-06-01" \\
+  -d '{
+    "model": "claude-3-opus-20240229",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{prompt}}"
+      }
+    ],
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}}
+  }'`
   },
   { 
     id: 3, 
@@ -44,7 +75,22 @@ const initialModels = [
     contextWindow: 128000,
     costPer1kTokens: '$0.001',
     supportsImages: true,
-    apiEndpoint: 'https://api.openai.com/v1/chat/completions'
+    apiEndpoint: 'https://api.openai.com/v1/chat/completions',
+    curlTemplate: `curl https://api.openai.com/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer {{apiKey}}" \\
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{prompt}}"
+      }
+    ],
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
+  }'`
   },
   { 
     id: 4, 
@@ -55,7 +101,17 @@ const initialModels = [
     contextWindow: 8000,
     costPer1kTokens: '$0.0005',
     supportsImages: false,
-    apiEndpoint: 'https://api.together.xyz/v1/completions'
+    apiEndpoint: 'https://api.together.xyz/v1/completions',
+    curlTemplate: `curl https://api.together.xyz/v1/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer {{apiKey}}" \\
+  -d '{
+    "model": "meta-llama/Llama-3-8b-chat",
+    "prompt": "{{prompt}}",
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
+  }'`
   },
 ];
 
@@ -70,8 +126,11 @@ const Models = () => {
     contextWindow: 0,
     costPer1kTokens: '',
     supportsImages: false,
-    enabled: true
+    enabled: true,
+    curlTemplate: ''
   });
+  const [activeTab, setActiveTab] = useState('configured');
+  const [editTab, setEditTab] = useState('basic');
   const { toast } = useToast();
 
   const toggleModelEnabled = (id: number) => {
@@ -83,9 +142,7 @@ const Models = () => {
   const handleEditModel = (model: typeof initialModels[0]) => {
     setEditingModel({...model});
     // Switch to edit tab
-    const tabsList = document.querySelector('[role="tablist"]');
-    const editTab = tabsList?.querySelector('[value="add"]') as HTMLButtonElement | null;
-    if (editTab) editTab.click();
+    setActiveTab('add');
   };
 
   const handleInputChange = (field: string, value: string | boolean | number) => {
@@ -100,6 +157,52 @@ const Models = () => {
         [field]: value
       });
     }
+  };
+
+  const getDefaultCurlTemplate = (provider: string) => {
+    if (provider === 'OpenAI') {
+      return `curl https://api.openai.com/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer {{apiKey}}" \\
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{prompt}}"
+      }
+    ],
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
+  }'`;
+    } else if (provider === 'Anthropic') {
+      return `curl https://api.anthropic.com/v1/messages \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: {{apiKey}}" \\
+  -H "anthropic-version: 2023-06-01" \\
+  -d '{
+    "model": "claude-3-opus-20240229",
+    "messages": [
+      {
+        "role": "user",
+        "content": "{{prompt}}"
+      }
+    ],
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}}
+  }'`;
+    }
+    return `curl {{apiEndpoint}} \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer {{apiKey}}" \\
+  -d '{
+    "model": "{{modelName}}",
+    "prompt": "{{prompt}}",
+    "temperature": {{temperature}},
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
+  }'`;
   };
 
   const handleAddOrUpdateModel = () => {
@@ -132,16 +235,17 @@ const Models = () => {
       contextWindow: 0,
       costPer1kTokens: '',
       supportsImages: false,
-      enabled: true
+      enabled: true,
+      curlTemplate: ''
     });
+    
+    // Switch back to configured tab
+    setActiveTab('configured');
   };
 
   const handleCancelEdit = () => {
     setEditingModel(null);
-    // Switch back to configured tab
-    const tabsList = document.querySelector('[role="tablist"]');
-    const configuredTab = tabsList?.querySelector('[value="configured"]') as HTMLButtonElement | null;
-    if (configuredTab) configuredTab.click();
+    setActiveTab('configured');
   };
 
   return (
@@ -153,7 +257,7 @@ const Models = () => {
           <h1 className="text-2xl font-medium">Models</h1>
         </div>
         
-        <Tabs defaultValue="configured" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="configured">Configured Models</TabsTrigger>
             <TabsTrigger value="add">{editingModel ? "Edit Model" : "Add Model"}</TabsTrigger>
@@ -223,88 +327,149 @@ const Models = () => {
                 <CardTitle className="text-lg">{editingModel ? `Edit ${editingModel.name}` : "Add New Model"}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="model-name" className="text-sm">Model Name</Label>
-                    <Input 
-                      id="model-name" 
-                      placeholder="e.g., GPT-4" 
-                      value={editingModel ? editingModel.name : newModel.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
+                <Tabs value={editTab} onValueChange={setEditTab} className="w-full">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="basic">Basic Settings</TabsTrigger>
+                    <TabsTrigger value="advanced">CURL Template</TabsTrigger>
+                  </TabsList>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="provider" className="text-sm">Provider</Label>
-                    <Input 
-                      id="provider" 
-                      placeholder="e.g., OpenAI" 
-                      value={editingModel ? editingModel.provider : newModel.provider}
-                      onChange={(e) => handleInputChange('provider', e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
+                  <TabsContent value="basic">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="model-name" className="text-sm">Model Name</Label>
+                        <Input 
+                          id="model-name" 
+                          placeholder="e.g., GPT-4" 
+                          value={editingModel ? editingModel.name : newModel.name}
+                          onChange={(e) => handleInputChange('name', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="provider" className="text-sm">Provider</Label>
+                        <Input 
+                          id="provider" 
+                          placeholder="e.g., OpenAI" 
+                          value={editingModel ? editingModel.provider : newModel.provider}
+                          onChange={(e) => {
+                            const provider = e.target.value;
+                            if (editingModel) {
+                              setEditingModel({
+                                ...editingModel,
+                                provider,
+                                curlTemplate: !editingModel.curlTemplate ? 
+                                  getDefaultCurlTemplate(provider) : 
+                                  editingModel.curlTemplate
+                              });
+                            } else {
+                              setNewModel({
+                                ...newModel,
+                                provider,
+                                curlTemplate: !newModel.curlTemplate ? 
+                                  getDefaultCurlTemplate(provider) : 
+                                  newModel.curlTemplate
+                              });
+                            }
+                          }}
+                          className="text-sm"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="context-window" className="text-sm">Context Window (tokens)</Label>
+                        <Input 
+                          id="context-window" 
+                          placeholder="e.g., 8000" 
+                          type="number"
+                          value={editingModel ? editingModel.contextWindow : newModel.contextWindow}
+                          onChange={(e) => handleInputChange('contextWindow', parseInt(e.target.value) || 0)}
+                          className="text-sm"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="cost-per-1k" className="text-sm">Cost per 1K tokens</Label>
+                        <Input 
+                          id="cost-per-1k" 
+                          placeholder="e.g., $0.005" 
+                          value={editingModel ? editingModel.costPer1kTokens : newModel.costPer1kTokens}
+                          onChange={(e) => handleInputChange('costPer1kTokens', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="api-key" className="text-sm">API Key</Label>
+                        <Input 
+                          id="api-key" 
+                          placeholder="Enter API key" 
+                          type="password"
+                          value={editingModel ? (editingModel.apiKey.includes('•') ? '' : editingModel.apiKey) : newModel.apiKey}
+                          onChange={(e) => handleInputChange('apiKey', e.target.value)}
+                          className="text-sm"
+                        />
+                        {editingModel?.apiKey.includes('•') && (
+                          <p className="text-xs text-muted-foreground mt-1">Leave empty to keep current API key</p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="api-endpoint" className="text-sm">API Endpoint</Label>
+                        <Input 
+                          id="api-endpoint" 
+                          placeholder="https://api.example.com/v1/completions" 
+                          value={editingModel ? editingModel.apiEndpoint : newModel.apiEndpoint}
+                          onChange={(e) => handleInputChange('apiEndpoint', e.target.value)}
+                          className="text-sm"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2 md:col-span-2 flex items-center gap-2">
+                        <Switch 
+                          id="supports-images"
+                          checked={editingModel ? editingModel.supportsImages : newModel.supportsImages}
+                          onCheckedChange={(checked) => handleInputChange('supportsImages', checked)}
+                          className="data-[state=checked]:bg-nothing-blue"
+                        />
+                        <Label htmlFor="supports-images" className="text-sm">Supports image inputs</Label>
+                      </div>
+                    </div>
+                  </TabsContent>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="context-window" className="text-sm">Context Window (tokens)</Label>
-                    <Input 
-                      id="context-window" 
-                      placeholder="e.g., 8000" 
-                      type="number"
-                      value={editingModel ? editingModel.contextWindow : newModel.contextWindow}
-                      onChange={(e) => handleInputChange('contextWindow', parseInt(e.target.value) || 0)}
-                      className="text-sm"
+                  <TabsContent value="advanced">
+                    <CurlTemplateField 
+                      value={editingModel ? editingModel.curlTemplate || '' : newModel.curlTemplate || ''} 
+                      onChange={(value) => {
+                        if (editingModel) {
+                          setEditingModel({
+                            ...editingModel,
+                            curlTemplate: value
+                          });
+                        } else {
+                          setNewModel({
+                            ...newModel,
+                            curlTemplate: value
+                          });
+                        }
+                      }}
+                      onReset={() => {
+                        const provider = editingModel ? editingModel.provider : newModel.provider;
+                        if (editingModel) {
+                          setEditingModel({
+                            ...editingModel,
+                            curlTemplate: getDefaultCurlTemplate(provider)
+                          });
+                        } else {
+                          setNewModel({
+                            ...newModel,
+                            curlTemplate: getDefaultCurlTemplate(provider)
+                          });
+                        }
+                      }}
                     />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="cost-per-1k" className="text-sm">Cost per 1K tokens</Label>
-                    <Input 
-                      id="cost-per-1k" 
-                      placeholder="e.g., $0.005" 
-                      value={editingModel ? editingModel.costPer1kTokens : newModel.costPer1kTokens}
-                      onChange={(e) => handleInputChange('costPer1kTokens', e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="api-key" className="text-sm">API Key</Label>
-                    <Input 
-                      id="api-key" 
-                      placeholder="Enter API key" 
-                      type="password"
-                      value={editingModel ? (editingModel.apiKey.includes('•') ? '' : editingModel.apiKey) : newModel.apiKey}
-                      onChange={(e) => handleInputChange('apiKey', e.target.value)}
-                      className="text-sm"
-                    />
-                    {editingModel?.apiKey.includes('•') && (
-                      <p className="text-xs text-muted-foreground mt-1">Leave empty to keep current API key</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="api-endpoint" className="text-sm">API Endpoint</Label>
-                    <Input 
-                      id="api-endpoint" 
-                      placeholder="https://api.example.com/v1/completions" 
-                      value={editingModel ? editingModel.apiEndpoint : newModel.apiEndpoint}
-                      onChange={(e) => handleInputChange('apiEndpoint', e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2 md:col-span-2 flex items-center gap-2">
-                    <Switch 
-                      id="supports-images"
-                      checked={editingModel ? editingModel.supportsImages : newModel.supportsImages}
-                      onCheckedChange={(checked) => handleInputChange('supportsImages', checked)}
-                      className="data-[state=checked]:bg-nothing-blue"
-                    />
-                    <Label htmlFor="supports-images" className="text-sm">Supports image inputs</Label>
-                  </div>
-                </div>
+                  </TabsContent>
+                </Tabs>
                 
                 <div className="flex justify-end gap-2 mt-6">
                   {editingModel && (
