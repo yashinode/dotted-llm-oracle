@@ -15,13 +15,13 @@ const ModelComparison = ({ results }: ModelComparisonProps) => {
     <div className="mt-8 animate-in fade-in">
       <h2 className="text-lg font-medium mb-4">Comparison Results</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="space-y-6">
         {results.map((result) => (
-          <Card key={result.model} className="border-dotted-custom">
+          <Card key={result.model} className="border-dotted-custom w-full">
             <CardContent className="p-4">
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-medium text-sm">{result.model}</h3>
+                  <h3 className="font-medium">{result.model}</h3>
                 </div>
                 
                 <div className="flex gap-4 text-xs text-muted-foreground mb-2">
