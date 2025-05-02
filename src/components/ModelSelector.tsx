@@ -16,6 +16,11 @@ interface Model {
   apiKey?: string;
   apiEndpoint?: string;
   curlTemplate?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
 }
 
 interface ModelSelectorProps {
@@ -40,7 +45,12 @@ const ModelSelector = ({
     apiKey: '',
     apiEndpoint: '',
     curlTemplate: '',
-    selected: true
+    selected: true,
+    temperature: 0.7,
+    maxTokens: 1000,
+    topP: 1,
+    frequencyPenalty: 0,
+    presencePenalty: 0
   });
   const [activeTab, setActiveTab] = useState('basic');
 
@@ -65,7 +75,12 @@ const ModelSelector = ({
       apiKey: '',
       apiEndpoint: '',
       curlTemplate: '',
-      selected: true
+      selected: true,
+      temperature: 0.7,
+      maxTokens: 1000,
+      topP: 1,
+      frequencyPenalty: 0,
+      presencePenalty: 0
     });
     setIsAddModelOpen(false);
   };
@@ -85,7 +100,9 @@ const ModelSelector = ({
     ],
     "temperature": {{temperature}},
     "max_tokens": {{maxTokens}},
-    "top_p": {{topP}}
+    "top_p": {{topP}},
+    "frequency_penalty": {{frequency_penalty}},
+    "presence_penalty": {{presence_penalty}}
   }'`;
     } else if (provider === 'Anthropic') {
       return `curl https://api.anthropic.com/v1/messages \\
@@ -101,7 +118,8 @@ const ModelSelector = ({
       }
     ],
     "temperature": {{temperature}},
-    "max_tokens": {{maxTokens}}
+    "max_tokens": {{maxTokens}},
+    "top_p": {{topP}}
   }'`;
     }
     return `curl {{apiEndpoint}} \\
@@ -112,7 +130,9 @@ const ModelSelector = ({
     "prompt": "{{prompt}}",
     "temperature": {{temperature}},
     "max_tokens": {{maxTokens}},
-    "top_p": {{topP}}
+    "top_p": {{topP}},
+    "frequency_penalty": {{frequency_penalty}},
+    "presence_penalty": {{presence_penalty}}
   }'`;
   };
 
@@ -125,7 +145,7 @@ const ModelSelector = ({
               id={`model-${model.id}`}
               checked={model.selected}
               onCheckedChange={() => onToggleModel(model.id)}
-              className="data-[state=checked]:bg-nothing-black data-[state=checked]:border-nothing-black"
+              className="data-[state=checked]:bg-[#1A1F2C] data-[state=checked]:border-[#1A1F2C]"
             />
             <Label 
               htmlFor={`model-${model.id}`}
@@ -138,7 +158,7 @@ const ModelSelector = ({
             variant="ghost" 
             size="sm" 
             onClick={() => handleEditModel(model)}
-            className="h-6 px-2 text-xs"
+            className="h-6 px-2 text-xs hover:bg-[#F1F1F1]"
           >
             Edit
           </Button>
@@ -147,19 +167,20 @@ const ModelSelector = ({
       
       <Dialog open={isAddModelOpen} onOpenChange={setIsAddModelOpen}>
         <DialogTrigger asChild>
-          <button className="w-full mt-2 text-xs text-nothing-blue border border-dashed border-nothing-blue/30 rounded p-1 hover:bg-nothing-blue/5 transition-colors">
+          <button className="w-full mt-2 text-xs text-[#1A1F2C] border border-solid border-[#ccc] rounded p-1 hover:bg-[#F1F1F1] transition-colors">
             + Add custom model
           </button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-white">
           <DialogHeader>
             <DialogTitle>Add New Model</DialogTitle>
           </DialogHeader>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 mb-4">
-              <TabsTrigger value="basic">Basic Settings</TabsTrigger>
-              <TabsTrigger value="advanced">CURL Template</TabsTrigger>
+            <TabsList className="grid grid-cols-3 mb-4 bg-[#eee] text-[#333]">
+              <TabsTrigger value="basic" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">Basic Settings</TabsTrigger>
+              <TabsTrigger value="advanced" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">API Template</TabsTrigger>
+              <TabsTrigger value="params" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">Parameters</TabsTrigger>
             </TabsList>
             
             <TabsContent value="basic">
@@ -171,6 +192,7 @@ const ModelSelector = ({
                     value={newModel.name}
                     onChange={(e) => setNewModel({ ...newModel, name: e.target.value })}
                     placeholder="e.g., GPT-4o"
+                    className="border-solid border-[#ccc]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -187,6 +209,7 @@ const ModelSelector = ({
                       });
                     }}
                     placeholder="e.g., OpenAI"
+                    className="border-solid border-[#ccc]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -197,6 +220,7 @@ const ModelSelector = ({
                     onChange={(e) => setNewModel({ ...newModel, apiKey: e.target.value })}
                     placeholder="Enter API key"
                     type="password"
+                    className="border-solid border-[#ccc]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -206,6 +230,7 @@ const ModelSelector = ({
                     value={newModel.apiEndpoint}
                     onChange={(e) => setNewModel({ ...newModel, apiEndpoint: e.target.value })}
                     placeholder="https://api.example.com/v1/completions"
+                    className="border-solid border-[#ccc]"
                   />
                 </div>
               </div>
@@ -223,25 +248,103 @@ const ModelSelector = ({
                 }}
               />
             </TabsContent>
+            
+            <TabsContent value="params">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-temperature" className="text-sm">Temperature</Label>
+                  <Input 
+                    id="new-temperature" 
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    value={newModel.temperature}
+                    onChange={(e) => setNewModel({ ...newModel, temperature: parseFloat(e.target.value) || 0 })}
+                    className="text-sm border-solid border-[#ccc]"
+                  />
+                  <p className="text-xs text-[#8E9196]">Controls randomness (0-2)</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-max-tokens" className="text-sm">Max Tokens</Label>
+                  <Input 
+                    id="new-max-tokens" 
+                    type="number"
+                    min="1"
+                    value={newModel.maxTokens}
+                    onChange={(e) => setNewModel({ ...newModel, maxTokens: parseInt(e.target.value) || 1 })}
+                    className="text-sm border-solid border-[#ccc]"
+                  />
+                  <p className="text-xs text-[#8E9196]">Maximum length of generated text</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-top-p" className="text-sm">Top P</Label>
+                  <Input 
+                    id="new-top-p" 
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={newModel.topP}
+                    onChange={(e) => setNewModel({ ...newModel, topP: parseFloat(e.target.value) || 0 })}
+                    className="text-sm border-solid border-[#ccc]"
+                  />
+                  <p className="text-xs text-[#8E9196]">Nucleus sampling (0-1)</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-frequency-penalty" className="text-sm">Frequency Penalty</Label>
+                  <Input 
+                    id="new-frequency-penalty" 
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    value={newModel.frequencyPenalty}
+                    onChange={(e) => setNewModel({ ...newModel, frequencyPenalty: parseFloat(e.target.value) || 0 })}
+                    className="text-sm border-solid border-[#ccc]"
+                  />
+                  <p className="text-xs text-[#8E9196]">Reduces repetition (0-2)</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-presence-penalty" className="text-sm">Presence Penalty</Label>
+                  <Input 
+                    id="new-presence-penalty" 
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    value={newModel.presencePenalty}
+                    onChange={(e) => setNewModel({ ...newModel, presencePenalty: parseFloat(e.target.value) || 0 })}
+                    className="text-sm border-solid border-[#ccc]"
+                  />
+                  <p className="text-xs text-[#8E9196]">Encourages new topics (0-2)</p>
+                </div>
+              </div>
+            </TabsContent>
           </Tabs>
           
           <div className="flex justify-end space-x-2 mt-4">
-            <Button onClick={handleAddNewModel} className="w-full">Add Model</Button>
+            <Button onClick={handleAddNewModel} className="bg-[#1A1F2C] hover:bg-[#1A1F2C]/90 text-white w-full">Add Model</Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditModelOpen} onOpenChange={setIsEditModelOpen}>
         {currentEditModel && (
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl bg-white">
             <DialogHeader>
               <DialogTitle>Edit Model: {currentEditModel.name}</DialogTitle>
             </DialogHeader>
             
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid grid-cols-2 mb-4">
-                <TabsTrigger value="basic">Basic Settings</TabsTrigger>
-                <TabsTrigger value="advanced">CURL Template</TabsTrigger>
+              <TabsList className="grid grid-cols-3 mb-4 bg-[#eee] text-[#333]">
+                <TabsTrigger value="basic" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">Basic Settings</TabsTrigger>
+                <TabsTrigger value="advanced" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">API Template</TabsTrigger>
+                <TabsTrigger value="params" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">Parameters</TabsTrigger>
               </TabsList>
               
               <TabsContent value="basic">
@@ -255,6 +358,7 @@ const ModelSelector = ({
                         ...currentEditModel, 
                         name: e.target.value 
                       })}
+                      className="border-solid border-[#ccc]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -272,6 +376,7 @@ const ModelSelector = ({
                             currentEditModel.curlTemplate 
                         });
                       }}
+                      className="border-solid border-[#ccc]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -284,6 +389,7 @@ const ModelSelector = ({
                         apiKey: e.target.value 
                       })}
                       type="password"
+                      className="border-solid border-[#ccc]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -295,6 +401,7 @@ const ModelSelector = ({
                         ...currentEditModel, 
                         apiEndpoint: e.target.value 
                       })}
+                      className="border-solid border-[#ccc]"
                     />
                   </div>
                 </div>
@@ -315,16 +422,114 @@ const ModelSelector = ({
                   }}
                 />
               </TabsContent>
+              
+              <TabsContent value="params">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-temperature" className="text-sm">Temperature</Label>
+                    <Input 
+                      id="edit-temperature" 
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="2"
+                      value={currentEditModel.temperature || 0.7}
+                      onChange={(e) => setCurrentEditModel({ 
+                        ...currentEditModel, 
+                        temperature: parseFloat(e.target.value) || 0 
+                      })}
+                      className="text-sm border-solid border-[#ccc]"
+                    />
+                    <p className="text-xs text-[#8E9196]">Controls randomness (0-2)</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-max-tokens" className="text-sm">Max Tokens</Label>
+                    <Input 
+                      id="edit-max-tokens" 
+                      type="number"
+                      min="1"
+                      value={currentEditModel.maxTokens || 1000}
+                      onChange={(e) => setCurrentEditModel({ 
+                        ...currentEditModel, 
+                        maxTokens: parseInt(e.target.value) || 1 
+                      })}
+                      className="text-sm border-solid border-[#ccc]"
+                    />
+                    <p className="text-xs text-[#8E9196]">Maximum length of generated text</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-top-p" className="text-sm">Top P</Label>
+                    <Input 
+                      id="edit-top-p" 
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      value={currentEditModel.topP || 1}
+                      onChange={(e) => setCurrentEditModel({ 
+                        ...currentEditModel, 
+                        topP: parseFloat(e.target.value) || 0 
+                      })}
+                      className="text-sm border-solid border-[#ccc]"
+                    />
+                    <p className="text-xs text-[#8E9196]">Nucleus sampling (0-1)</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-frequency-penalty" className="text-sm">Frequency Penalty</Label>
+                    <Input 
+                      id="edit-frequency-penalty" 
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="2"
+                      value={currentEditModel.frequencyPenalty || 0}
+                      onChange={(e) => setCurrentEditModel({ 
+                        ...currentEditModel, 
+                        frequencyPenalty: parseFloat(e.target.value) || 0 
+                      })}
+                      className="text-sm border-solid border-[#ccc]"
+                    />
+                    <p className="text-xs text-[#8E9196]">Reduces repetition (0-2)</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-presence-penalty" className="text-sm">Presence Penalty</Label>
+                    <Input 
+                      id="edit-presence-penalty" 
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="2"
+                      value={currentEditModel.presencePenalty || 0}
+                      onChange={(e) => setCurrentEditModel({ 
+                        ...currentEditModel, 
+                        presencePenalty: parseFloat(e.target.value) || 0 
+                      })}
+                      className="text-sm border-solid border-[#ccc]"
+                    />
+                    <p className="text-xs text-[#8E9196]">Encourages new topics (0-2)</p>
+                  </div>
+                </div>
+              </TabsContent>
             </Tabs>
             
             <div className="flex justify-end space-x-2 mt-4">
               <Button
                 variant="outline"
                 onClick={() => setIsEditModelOpen(false)}
+                className="border-solid border-[#ccc]"
               >
                 Cancel
               </Button>
-              <Button onClick={handleSaveEdit}>Save Changes</Button>
+              <Button 
+                onClick={handleSaveEdit}
+                className="bg-[#1A1F2C] hover:bg-[#1A1F2C]/90 text-white"
+              >
+                Save Changes
+              </Button>
             </div>
           </DialogContent>
         )}

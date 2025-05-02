@@ -127,7 +127,12 @@ const Models = () => {
     costPer1kTokens: '',
     supportsImages: false,
     enabled: true,
-    curlTemplate: ''
+    curlTemplate: '',
+    temperature: 0.7,
+    maxTokens: 1000,
+    topP: 1,
+    frequencyPenalty: 0,
+    presencePenalty: 0
   });
   const [activeTab, setActiveTab] = useState('configured');
   const [editTab, setEditTab] = useState('basic');
@@ -249,48 +254,48 @@ const Models = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-dotted-pattern">
+    <div className="flex flex-col min-h-screen bg-[#F6F6F7]">
       <Navbar />
       
       <main className="flex-1 container max-w-6xl py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-medium">Models</h1>
+          <h1 className="text-2xl font-medium text-[#1A1F2C]">Models</h1>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="configured">Configured Models</TabsTrigger>
-            <TabsTrigger value="add">{editingModel ? "Edit Model" : "Add Model"}</TabsTrigger>
+          <TabsList className="mb-4 bg-[#eee] text-[#333]">
+            <TabsTrigger value="configured" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">Configured Models</TabsTrigger>
+            <TabsTrigger value="add" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">{editingModel ? "Edit Model" : "Add Model"}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="configured">
-            <Card className="border-dotted-custom bg-card">
+            <Card className="border border-solid border-[#ccc] bg-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Available Models</CardTitle>
+                <CardTitle className="text-lg text-[#1A1F2C]">Available Models</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-muted/20">
-                      <TableHead className="text-xs">Model</TableHead>
-                      <TableHead className="text-xs">Provider</TableHead>
-                      <TableHead className="text-xs">Context</TableHead>
-                      <TableHead className="text-xs">Cost</TableHead>
-                      <TableHead className="text-xs">Features</TableHead>
-                      <TableHead className="text-xs">Status</TableHead>
-                      <TableHead className="text-xs w-[100px]"></TableHead>
+                    <TableRow className="hover:bg-[#F1F1F1]">
+                      <TableHead className="text-xs text-[#8E9196]">Model</TableHead>
+                      <TableHead className="text-xs text-[#8E9196]">Provider</TableHead>
+                      <TableHead className="text-xs text-[#8E9196]">Context</TableHead>
+                      <TableHead className="text-xs text-[#8E9196]">Cost</TableHead>
+                      <TableHead className="text-xs text-[#8E9196]">Features</TableHead>
+                      <TableHead className="text-xs text-[#8E9196]">Status</TableHead>
+                      <TableHead className="text-xs w-[100px] text-[#8E9196]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {models.map((model) => (
-                      <TableRow key={model.id} className="hover:bg-muted/20">
+                      <TableRow key={model.id} className="hover:bg-[#F1F1F1]">
                         <TableCell className="font-medium">{model.name}</TableCell>
                         <TableCell>{model.provider}</TableCell>
                         <TableCell className="text-xs">{model.contextWindow.toLocaleString()} tokens</TableCell>
                         <TableCell className="text-xs">{model.costPer1kTokens}/1K</TableCell>
                         <TableCell>
                           {model.supportsImages && (
-                            <Badge variant="outline" className="text-[10px]">
+                            <Badge variant="outline" className="text-[10px] border-[#1A1F2C] text-[#1A1F2C]">
                               Images
                             </Badge>
                           )}
@@ -300,14 +305,14 @@ const Models = () => {
                             <Switch 
                               checked={model.enabled}
                               onCheckedChange={() => toggleModelEnabled(model.id)}
-                              className="data-[state=checked]:bg-nothing-blue"
+                              className="data-[state=checked]:bg-[#1A1F2C]"
                             />
                             <span className="text-xs">{model.enabled ? 'Active' : 'Inactive'}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <button 
-                            className="text-xs text-nothing-blue hover:underline"
+                            className="text-xs text-[#1A1F2C] hover:underline"
                             onClick={() => handleEditModel(model)}
                           >
                             Edit
@@ -322,15 +327,16 @@ const Models = () => {
           </TabsContent>
           
           <TabsContent value="add">
-            <Card className="border-dotted-custom bg-card">
+            <Card className="border border-solid border-[#ccc] bg-white">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{editingModel ? `Edit ${editingModel.name}` : "Add New Model"}</CardTitle>
+                <CardTitle className="text-lg text-[#1A1F2C]">{editingModel ? `Edit ${editingModel.name}` : "Add New Model"}</CardTitle>
               </CardHeader>
               <CardContent>
                 <Tabs value={editTab} onValueChange={setEditTab} className="w-full">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="basic">Basic Settings</TabsTrigger>
-                    <TabsTrigger value="advanced">CURL Template</TabsTrigger>
+                  <TabsList className="mb-4 bg-[#eee] text-[#333]">
+                    <TabsTrigger value="basic" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">Basic Settings</TabsTrigger>
+                    <TabsTrigger value="advanced" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">API Template</TabsTrigger>
+                    <TabsTrigger value="params" className="data-[state=active]:bg-[#1A1F2C] data-[state=active]:text-white">Parameters</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="basic">
@@ -342,7 +348,7 @@ const Models = () => {
                           placeholder="e.g., GPT-4" 
                           value={editingModel ? editingModel.name : newModel.name}
                           onChange={(e) => handleInputChange('name', e.target.value)}
-                          className="text-sm"
+                          className="text-sm border-solid border-[#ccc]"
                         />
                       </div>
                       
@@ -372,7 +378,7 @@ const Models = () => {
                               });
                             }
                           }}
-                          className="text-sm"
+                          className="text-sm border-solid border-[#ccc]"
                         />
                       </div>
                       
@@ -384,7 +390,7 @@ const Models = () => {
                           type="number"
                           value={editingModel ? editingModel.contextWindow : newModel.contextWindow}
                           onChange={(e) => handleInputChange('contextWindow', parseInt(e.target.value) || 0)}
-                          className="text-sm"
+                          className="text-sm border-solid border-[#ccc]"
                         />
                       </div>
                       
@@ -395,7 +401,7 @@ const Models = () => {
                           placeholder="e.g., $0.005" 
                           value={editingModel ? editingModel.costPer1kTokens : newModel.costPer1kTokens}
                           onChange={(e) => handleInputChange('costPer1kTokens', e.target.value)}
-                          className="text-sm"
+                          className="text-sm border-solid border-[#ccc]"
                         />
                       </div>
                       
@@ -407,10 +413,10 @@ const Models = () => {
                           type="password"
                           value={editingModel ? (editingModel.apiKey.includes('•') ? '' : editingModel.apiKey) : newModel.apiKey}
                           onChange={(e) => handleInputChange('apiKey', e.target.value)}
-                          className="text-sm"
+                          className="text-sm border-solid border-[#ccc]"
                         />
                         {editingModel?.apiKey.includes('•') && (
-                          <p className="text-xs text-muted-foreground mt-1">Leave empty to keep current API key</p>
+                          <p className="text-xs text-[#8E9196] mt-1">Leave empty to keep current API key</p>
                         )}
                       </div>
                       
@@ -421,7 +427,7 @@ const Models = () => {
                           placeholder="https://api.example.com/v1/completions" 
                           value={editingModel ? editingModel.apiEndpoint : newModel.apiEndpoint}
                           onChange={(e) => handleInputChange('apiEndpoint', e.target.value)}
-                          className="text-sm"
+                          className="text-sm border-solid border-[#ccc]"
                         />
                       </div>
                       
@@ -430,7 +436,7 @@ const Models = () => {
                           id="supports-images"
                           checked={editingModel ? editingModel.supportsImages : newModel.supportsImages}
                           onCheckedChange={(checked) => handleInputChange('supportsImages', checked)}
-                          className="data-[state=checked]:bg-nothing-blue"
+                          className="data-[state=checked]:bg-[#1A1F2C]"
                         />
                         <Label htmlFor="supports-images" className="text-sm">Supports image inputs</Label>
                       </div>
@@ -469,6 +475,83 @@ const Models = () => {
                       }}
                     />
                   </TabsContent>
+                  
+                  <TabsContent value="params">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="temperature" className="text-sm">Temperature</Label>
+                        <Input 
+                          id="temperature" 
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="2"
+                          value={editingModel ? editingModel.temperature || 0.7 : newModel.temperature}
+                          onChange={(e) => handleInputChange('temperature', parseFloat(e.target.value) || 0)}
+                          className="text-sm border-solid border-[#ccc]"
+                        />
+                        <p className="text-xs text-[#8E9196]">Controls randomness (0-2)</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="max-tokens" className="text-sm">Max Tokens</Label>
+                        <Input 
+                          id="max-tokens" 
+                          type="number"
+                          min="1"
+                          value={editingModel ? editingModel.maxTokens || 1000 : newModel.maxTokens}
+                          onChange={(e) => handleInputChange('maxTokens', parseInt(e.target.value) || 1)}
+                          className="text-sm border-solid border-[#ccc]"
+                        />
+                        <p className="text-xs text-[#8E9196]">Maximum length of generated text</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="top-p" className="text-sm">Top P</Label>
+                        <Input 
+                          id="top-p" 
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1"
+                          value={editingModel ? editingModel.topP || 1 : newModel.topP}
+                          onChange={(e) => handleInputChange('topP', parseFloat(e.target.value) || 0)}
+                          className="text-sm border-solid border-[#ccc]"
+                        />
+                        <p className="text-xs text-[#8E9196]">Nucleus sampling (0-1)</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="frequency-penalty" className="text-sm">Frequency Penalty</Label>
+                        <Input 
+                          id="frequency-penalty" 
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="2"
+                          value={editingModel ? editingModel.frequencyPenalty || 0 : newModel.frequencyPenalty}
+                          onChange={(e) => handleInputChange('frequencyPenalty', parseFloat(e.target.value) || 0)}
+                          className="text-sm border-solid border-[#ccc]"
+                        />
+                        <p className="text-xs text-[#8E9196]">Reduces repetition (0-2)</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="presence-penalty" className="text-sm">Presence Penalty</Label>
+                        <Input 
+                          id="presence-penalty" 
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="2"
+                          value={editingModel ? editingModel.presencePenalty || 0 : newModel.presencePenalty}
+                          onChange={(e) => handleInputChange('presencePenalty', parseFloat(e.target.value) || 0)}
+                          className="text-sm border-solid border-[#ccc]"
+                        />
+                        <p className="text-xs text-[#8E9196]">Encourages new topics (0-2)</p>
+                      </div>
+                    </div>
+                  </TabsContent>
                 </Tabs>
                 
                 <div className="flex justify-end gap-2 mt-6">
@@ -476,14 +559,14 @@ const Models = () => {
                     <Button 
                       variant="outline" 
                       onClick={handleCancelEdit}
-                      className="text-sm"
+                      className="text-sm border-solid border-[#ccc]"
                     >
                       Cancel
                     </Button>
                   )}
                   <Button 
                     onClick={handleAddOrUpdateModel}
-                    className="bg-nothing-black hover:bg-nothing-black/90 text-white text-sm"
+                    className="bg-[#1A1F2C] hover:bg-[#1A1F2C]/90 text-white text-sm"
                   >
                     {editingModel ? "Save Changes" : "Add Model"}
                   </Button>

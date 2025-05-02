@@ -14,7 +14,7 @@ const CurlTemplateField = ({ value, onChange, onReset }: CurlTemplateFieldProps)
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label htmlFor="curl-template" className="text-sm">CURL Template</Label>
+        <Label htmlFor="curl-template" className="text-sm">API Template</Label>
         <Button 
           variant="outline" 
           size="sm"
@@ -41,7 +41,7 @@ const CurlTemplateField = ({ value, onChange, onReset }: CurlTemplateFieldProps)
         className="min-h-[150px] font-mono text-xs"
       />
       <p className="text-xs text-muted-foreground">
-        Use placeholders: <code>{'{{prompt}}'}</code>, <code>{'{{temperature}}'}</code>, <code>{'{{maxTokens}}'}</code>, <code>{'{{topP}}'}</code>, <code>{'{{apiKey}}'}</code>
+        Use placeholders: <code>{'{{prompt}}'}</code>, <code>{'{{temperature}}'}</code>, <code>{'{{maxTokens}}'}</code>, <code>{'{{topP}}'}</code>, <code>{'{{apiKey}}'}</code>, <code>{'{{frequency_penalty}}'}</code>, <code>{'{{presence_penalty}}'}</code>
       </p>
     </div>
   );

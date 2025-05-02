@@ -85,7 +85,9 @@ export const fetchModelResponse = async (
           prompt: prompt,
           temperature: parameters.temperature,
           max_tokens: parameters.maxTokens,
-          top_p: parameters.topP
+          top_p: parameters.topP,
+          frequency_penalty: parameters.frequency_penalty,
+          presence_penalty: parameters.presence_penalty
         };
       }
     }
@@ -168,7 +170,9 @@ function parseCurlTemplate(
         .replace(/{{prompt}}/g, prompt)
         .replace(/{{temperature}}/g, parameters.temperature.toString())
         .replace(/{{maxTokens}}/g, parameters.maxTokens.toString())
-        .replace(/{{topP}}/g, parameters.topP.toString());
+        .replace(/{{topP}}/g, parameters.topP.toString())
+        .replace(/{{frequency_penalty}}/g, parameters.frequency_penalty?.toString() || '0')
+        .replace(/{{presence_penalty}}/g, parameters.presence_penalty?.toString() || '0');
         
       // Parse the body JSON
       body = JSON.parse(bodyStr);
@@ -180,7 +184,7 @@ function parseCurlTemplate(
       if (match[1] && match[1].includes(':')) {
         const [key, ...valueParts] = match[1].split(':');
         const value = valueParts.join(':').trim();
-        headers[key.trim()] = value;
+        headers[key.trim()] = value.replace(/{{apiKey}}/g, parameters.apiKey);
       }
     }
     
